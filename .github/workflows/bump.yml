@@ -1,0 +1,76 @@
+name: bump-formula
+
+# Update Formula/vcf-cli.rb to a new @kaelith-labs/cli release.
+#
+# Usage:
+#   - Manual:        workflow_dispatch with the `version` input
+#   - Cross-repo:    repository_dispatch with type=cli-release and
+#                    client_payload.version="X.Y.Z[-prerelease]"
+#
+# What it does: fetches the npm tarball for the requested version,
+# computes sha256, sed-replaces the `url`, `sha256`, and `version`
+# lines in Formula/vcf-cli.rb, commits, pushes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version to bump the formula to (e.g. 0.2.0-alpha.0)"
+        required: true
+        type: string
+  repository_dispatch:
+    types: [cli-release]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version input
+        id: v
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ github.event.client_payload.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch tarball + compute sha256
+        id: sha
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
+          URL="https://registry.npmjs.org/@kaelith-labs/cli/-/cli-${VERSION}.tgz"
+          echo "Fetching $URL"
+          curl -fsSL "$URL" -o pkg.tgz
+          SHA=$(sha256sum pkg.tgz | awk '{print $1}')
+          echo "sha256=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          rm pkg.tgz
+
+      - name: Update Formula/vcf-cli.rb
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
+          URL="${{ steps.sha.outputs.url }}"
+          SHA="${{ steps.sha.outputs.sha256 }}"
+          # Use | as separator; the URL contains slashes.
+          sed -i "s|^  url .*|  url \"${URL}\"|" Formula/vcf-cli.rb
+          sed -i "s|^  sha256 .*|  sha256 \"${SHA}\"|" Formula/vcf-cli.rb
+          sed -i "s|^  version .*|  version \"${VERSION}\"|" Formula/vcf-cli.rb
+          cat Formula/vcf-cli.rb
+
+      - name: Commit + push
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
+          git config user.name  "vcf-bot"
+          git config user.email "vcf-bot@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Formula already at ${VERSION}; nothing to commit."
+            exit 0
+          fi
+          git add Formula/vcf-cli.rb
+          git commit -m "bump: vcf-cli ${VERSION}"
+          git push
