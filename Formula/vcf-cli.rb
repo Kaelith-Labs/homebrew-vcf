@@ -16,7 +16,10 @@ class VcfCli < Formula
   def install
     # Install the npm package into libexec/ so we own the directory layout,
     # then link the two bins (vcf, vcf-mcp) into bin/ as Homebrew expects.
-    system "npm", "install", *Language::Node.std_npm_install_args(libexec)
+    # `std_npm_args` is the modern replacement for the removed
+    # `Language::Node.std_npm_install_args` helper — it sets --prefix,
+    # disables audit/fund noise, and installs `.` (the current dir).
+    system "npm", "install", *std_npm_args(prefix: libexec)
     bin.install_symlink Dir[libexec/"bin/*"]
   end
 
