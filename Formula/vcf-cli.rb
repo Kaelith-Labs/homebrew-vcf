@@ -20,6 +20,17 @@ class VcfCli < Formula
     # `Language::Node.std_npm_install_args` helper — it sets --prefix,
     # disables audit/fund noise, and installs `.` (the current dir).
     system "npm", "install", *std_npm_args(prefix: libexec)
+
+    # Homebrew's npm install runs under `--ignore-scripts` for security, so
+    # packages with native addons (here: better-sqlite3's prebuild-install)
+    # never download their platform binary and the MCP server crashes at
+    # startup with "Could not locate the bindings file". Explicitly rebuild
+    # the one dep that needs it — this re-runs the install hook and fetches
+    # the matching prebuilt `.node` binary for the current node + arch.
+    cd libexec/"lib/node_modules/@kaelith-labs/cli" do
+      system "npm", "rebuild", "better-sqlite3"
+    end
+
     bin.install_symlink Dir[libexec/"bin/*"]
   end
 
