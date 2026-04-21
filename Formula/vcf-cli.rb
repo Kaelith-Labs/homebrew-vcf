@@ -11,9 +11,19 @@ class VcfCli < Formula
   # documenting.
   version "0.2.1-alpha.0"
 
-  depends_on "node"
+  # Pin to node@22 (active LTS) rather than the unversioned `node` formula.
+  # Homebrew's `node` tracks current (25.x as of 2026-04-20), but
+  # better-sqlite3 11.5 has not published prebuilt binaries for the Node 25
+  # ABI yet — npm falls back to a from-source compile whose intermediate
+  # files carry modes Homebrew can't clean up later, leaving a broken keg.
+  # LTS has prebuilts, no compile, clean install.
+  depends_on "node@22"
 
   def install
+    # node@22 is keg-only, so expose it on PATH for the duration of install
+    # so `npm` and the shebang-resolved node match.
+    ENV.prepend_path "PATH", Formula["node@22"].opt_bin
+
     # Install the npm package into libexec/ so we own the directory layout,
     # then link the two bins (vcf, vcf-mcp) into bin/ as Homebrew expects.
     # `std_npm_args` is the modern replacement for the removed
@@ -26,7 +36,7 @@ class VcfCli < Formula
     # never download their platform binary and the MCP server crashes at
     # startup with "Could not locate the bindings file". Explicitly rebuild
     # the one dep that needs it — this re-runs the install hook and fetches
-    # the matching prebuilt `.node` binary for the current node + arch.
+    # the matching prebuilt `.node` binary for the pinned node + arch.
     cd libexec/"lib/node_modules/@kaelith-labs/cli" do
       system "npm", "rebuild", "better-sqlite3"
     end
