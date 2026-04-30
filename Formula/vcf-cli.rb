@@ -3,13 +3,13 @@ class VcfCli < Formula
   homepage "https://github.com/Kaelith-Labs/vcf-cli"
   # Alpha prereleases are published under the npm `alpha` dist-tag; this
   # formula pins the exact tarball for reproducibility.
-  url "https://registry.npmjs.org/@kaelith-labs/cli/-/cli-0.7.0.tgz"
-  sha256 "5ff6462894adcce84f13c0b5f730b1bd0567989b4667228788334af9d134d612"
+  url "https://registry.npmjs.org/@kaelith-labs/cli/-/cli-0.7.1.tgz"
+  sha256 "660131970513c5dd3be83e61849840e0f91ea2eff5bbd933d14aed7d09ad512d"
   license "Apache-2.0"
   # Bump `version` alongside `url` on each release. Homebrew parses it from
   # the tarball name by default; overriding here keeps the formula self-
   # documenting.
-  version "0.7.0"
+  version "0.7.1"
 
   # Pin to node@22 (active LTS) rather than the unversioned `node` formula.
   # Homebrew's `node` tracks current (25.x as of 2026-04-20), but
